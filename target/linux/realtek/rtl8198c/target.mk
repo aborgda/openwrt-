@@ -1,10 +1,8 @@
 SUBTARGET:=rtl8198c
-BOARDNAME:=Realtek RTL8198C legacy boards
+BOARDNAME:=RTL8198C GN866 AC / SK337
 CPU_TYPE:=24kec
-KERNEL_PATCHVER:=3.10.49
-
 DEFAULT_PACKAGES +=
 
 define Target/Description
- RTL8198C legacy MIPS boards: GN866 AC and SK337.
+	RTL8198C based GN866 AC and SK337 boards.
 endef
