@@ -14,72 +14,72 @@ jobs:
     steps:
       - name: Checkout configured OpenWrt tree
         uses: actions/checkout@v4
-
-      - name: Checkout legacy Realtek OpenWrt SDK
+      - name: Checkout legacy Realtek kernel/build base
         uses: actions/checkout@v4
         with:
           repository: aborgda/openwrt-rtk819
           path: legacy
           fetch-depth: 1
-
-      - name: Prepare legacy RTL8198C build workspace
+      - name: Prepare REALTEK target tree
         shell: bash
         run: |
           set -eux
           rm -rf build-rtk
           cp -a legacy/. build-rtk/
-          cp -a target/linux/realtek/files-3.10/. build-rtk/target/linux/rtkmips/files/
-          mkdir -p build-rtk/target/linux/rtkmips/image
-          cp target/linux/realtek/image/Makefile.legacy build-rtk/target/linux/rtkmips/image/Makefile
-          mkdir -p build-rtk/target/linux/rtkmips/rtl8198c
-          cp target/linux/realtek/rtl8198c/target.mk build-rtk/target/linux/rtkmips/rtl8198c/target.mk
-          cp target/linux/realtek/rtl8198c/files/dev_leds_gpio.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/dev_leds_gpio.c
-          cp target/linux/realtek/rtl8198c/files/gpio.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/gpio.c
-          cp target/linux/realtek/rtl8198c/files/mach_rtl8198c.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/mach_rtl8198c.c
-          cp target/linux/realtek/rtl8198c/files/rtl8198c.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/prom.c
-          cp target/linux/realtek/rtl8198c/files/Makefile build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/Makefile
-          chmod +x build-rtk/target/linux/rtkmips/files/etc/init.d/rtl8198c-wlan
+          rm -rf build-rtk/target/linux/rtkmips
+          mkdir -p build-rtk/target/linux/realtek
+          cp -a target/linux/realtek/. build-rtk/target/linux/realtek/
+          # The legacy 3.10 kernel patches are required by the RTL8198C kernel.
+          cp -a legacy/target/linux/rtkmips/patches-3.10 build-rtk/target/linux/realtek/patches-3.10
+          # Keep the legacy realtek BSP helper files under the realtek target.
+          mkdir -p build-rtk/target/linux/realtek/files-3.10/arch/rlx/soc-rtl819xd
+          cp -a target/linux/realtek/rtl8198c/files/. build-rtk/target/linux/realtek/files-3.10/arch/rlx/soc-rtl819xd/
+          # Use the proven legacy LZMA loader implementation, now consumed by target/linux/realtek/image.
+          rm -rf build-rtk/target/linux/realtek/image/lzma-loader/src
+          mkdir -p build-rtk/target/linux/realtek/image/lzma-loader/src
+          cp -a legacy/target/linux/rtkmips/image/lzma-loader/src/. build-rtk/target/linux/realtek/image/lzma-loader/src/
+          chmod +x build-rtk/target/linux/realtek/files-3.10/etc/init.d/rtl8198c-wlan
           cp legacy/rtk_deconfig/defconfig_rtl8198c build-rtk/.config
-          {
-            echo 'CONFIG_TARGET_rtkmips=y'
-            echo 'CONFIG_TARGET_rtkmips_rtl8198c=y'
-            echo 'CONFIG_TARGET_ROOTFS_SQUASHFS=y'
-            echo 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=4'
-          } >> build-rtk/.config
-
+          cat >> build-rtk/.config <<'EOF'
+          CONFIG_TARGET_realtek=y
+          CONFIG_TARGET_realtek_rtl8198c=y
+          CONFIG_TARGET_ROOTFS_SQUASHFS=y
+          CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=4
+          EOF
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev zlib1g-dev gawk flex bison gettext rsync unzip wget python3
-
-      - name: Build GN866 and SK337
+          sudo apt-get install -y build-essential cmake libncurses5-dev zlib1g-dev gawk flex bison gettext rsync unzip wget python3
+      - name: Prepare host tools and bypass obsolete CMake 2.8.12.2
         working-directory: build-rtk
         shell: bash
         run: |
           set -eux
-          ./scripts/feeds update -a || true
-          ./scripts/feeds install -a || true
           make defconfig
-          # Extract old findutils before patching; its bundled gnulib predates glibc 2.28.
           make tools/findutils/prepare V=s
-          find build_dir/host/findutils-* -type f \( -name 'freadahead.c' -o -name 'fseeko.c' -o -name 'stdio-impl.h' \) -print0 |
-            xargs -0 -r sed -i -e 's/_IO_ftrylockfile/_IO_EOF_SEEN/g' -e 's/_IO_IN_BACKUP/0x100/g'
-          find build_dir/host/findutils-* -type f -name 'freadahead.c' -print0 |
-            xargs -0 -r sed -i '/#error "Please port gnulib freadahead.c/c\  return 0;'
-          find build_dir/host/findutils-* -type f -name 'fseeko.c' -print0 |
-            xargs -0 -r sed -i '/#error "Please port gnulib fseeko.c/c\  if (0)'
+          find build_dir/host/findutils-* -type f \\( -name 'freadahead.c' -o -name 'fseeko.c' -o -name 'stdio-impl.h' \\) -print0 | xargs -0 -r sed -i -e 's/_IO_ftrylockfile/_IO_EOF_SEEN/g' -e 's/_IO_IN_BACKUP/0x100/g'
+          find build_dir/host/findutils-* -type f -name 'freadahead.c' -print0 | xargs -0 -r sed -i '/#error "Please port gnulib freadahead.c/c\\  return 0;'
+          find build_dir/host/findutils-* -type f -name 'fseeko.c' -print0 | xargs -0 -r sed -i '/#error "Please port gnulib fseeko.c/c\\  if (0)'
           make tools/findutils/compile V=s
+          make tools/cmake/prepare V=s || true
+          mkdir -p staging_dir/host/bin
+          ln -sf /usr/bin/cmake staging_dir/host/bin/cmake
+          touch build_dir/host/cmake-2.8.12.2/.built
+      - name: Build GN866 AC and SK337 from target/linux/realtek
+        working-directory: build-rtk
+        shell: bash
+        run: |
+          set -eux
           make -j2 V=s
-          find bin -type f \( -name '*fw.bin' -o -name '*factory.bin' \) -print | sort
-
+          find bin -type f \\( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \\) -print | sort
       - name: Collect firmware
         shell: bash
         run: |
+          set -eux
           mkdir -p artifacts
-          find build-rtk/bin -type f \( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \) -exec cp -v {} artifacts/ \; || true
-          printf '%s\n' 'RTL8198C legacy rtkmips build' 'GN866 AC + SK337' 'GPIO/LED/button board sources imported' 'WLAN auto-start enabled' > artifacts/README.txt
+          find build-rtk/bin -type f \\( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \\) -exec cp -v {} artifacts/ \\; || true
+          printf '%s\\n' 'RTL8198C native target/linux/realtek legacy build' 'GN866 AC + SK337' 'DTS/board data + GPIO/LED/button sources' 'Legacy LZMA loader integrated' 'WLAN auto-start enabled' > artifacts/README.txt
           ls -lh artifacts
-
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
