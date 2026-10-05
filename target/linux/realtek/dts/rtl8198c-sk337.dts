@@ -1,0 +1,6 @@
+/dts-v1/;
+/ {
+    compatible = "realtek,rtl8198c", "realtek,sk337";
+    model = "SK337";
+    chosen { bootargs = "console=ttyS0,38400"; };
+};

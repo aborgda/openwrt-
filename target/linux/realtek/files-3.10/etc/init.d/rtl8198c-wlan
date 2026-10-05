@@ -1,0 +1,17 @@
+#!/bin/sh /etc/rc.common
+START=15
+STOP=90
+
+start() {
+    # Realtek legacy radio modules.
+    modprobe rtl8192e 2>/dev/null || true
+    modprobe rtl8812ar 2>/dev/null || true
+    sleep 1
+    ip link set wlan0 up 2>/dev/null || true
+    ip link set wlan1 up 2>/dev/null || true
+}
+
+stop() {
+    ip link set wlan0 down 2>/dev/null || true
+    ip link set wlan1 down 2>/dev/null || true
+}

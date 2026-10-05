@@ -1,0 +1,6 @@
+/dts-v1/;
+/ {
+    compatible = "realtek,rtl8198c", "realtek,gn866-ac";
+    model = "GN866 AC";
+    chosen { bootargs = "console=ttyS0,38400"; };
+};

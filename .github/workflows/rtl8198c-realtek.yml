@@ -28,27 +28,26 @@ jobs:
           set -eux
           rm -rf build-rtk
           cp -a legacy/. build-rtk/
-          rm -rf build-rtk/target/linux/rtkmips
-          mkdir -p build-rtk/target/linux/realtek
-          cp -a target/linux/realtek/. build-rtk/target/linux/realtek/
-          cp -a legacy/target/linux/rtkmips/patches-3.10 build-rtk/target/linux/realtek/
-          cp -a legacy/target/linux/rtkmips/files build-rtk/target/linux/realtek/files-3.10
-          cp -a legacy/target/linux/rtkmips/base-files build-rtk/target/linux/realtek/base-files
-          rm -rf build-rtk/target/linux/realtek/image/lzma-loader
-          cp -a legacy/target/linux/rtkmips/image/lzma-loader build-rtk/target/linux/realtek/image/lzma-loader
-          cp target/linux/realtek/image/Makefile.legacy build-rtk/target/linux/realtek/image/Makefile
-          cp legacy/target/linux/rtkmips/Makefile build-rtk/target/linux/realtek/Makefile
-          sed -i 's/BOARD:=rtkmips/BOARD:=realtek/; s/SUBTARGETS:=rtl8198c rtl8954e/SUBTARGETS:=rtl8198c/; s/Realtek mips SOC/Realtek legacy MIPS/' build-rtk/target/linux/realtek/Makefile
+          # Keep the proven legacy rtkmips target; target/linux/realtek is
+          # the maintained source tree for our RTL8198C additions.
+          cp -a target/linux/realtek/files-3.10/. build-rtk/target/linux/rtkmips/files/
+          mkdir -p build-rtk/target/linux/rtkmips/image
+          cp target/linux/realtek/image/Makefile.legacy build-rtk/target/linux/rtkmips/image/Makefile
+          mkdir -p build-rtk/target/linux/rtkmips/rtl8198c
+          cp target/linux/realtek/rtl8198c/target.mk build-rtk/target/linux/rtkmips/rtl8198c/target.mk
+          cp target/linux/realtek/rtl8198c/files/dev_leds_gpio.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/dev_leds_gpio.c
+          cp target/linux/realtek/rtl8198c/files/gpio.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/gpio.c
+          cp target/linux/realtek/rtl8198c/files/mach_rtl8198c.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/mach_rtl8198c.c
+          cp target/linux/realtek/rtl8198c/files/rtl8198c.c build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/prom.c
+          cp target/linux/realtek/rtl8198c/files/Makefile build-rtk/target/linux/rtkmips/files/arch/rlx/soc-rtl819xd/Makefile
+          chmod +x build-rtk/target/linux/rtkmips/files/etc/init.d/rtl8198c-wlan
           cp legacy/rtk_deconfig/defconfig_rtl8198c build-rtk/.config
           {
-            echo 'CONFIG_TARGET_realtek=y'
-            echo 'CONFIG_TARGET_realtek_rtl8198c=y'
+            echo 'CONFIG_TARGET_rtkmips=y'
+            echo 'CONFIG_TARGET_rtkmips_rtl8198c=y'
             echo 'CONFIG_TARGET_ROOTFS_SQUASHFS=y'
             echo 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=4'
           } >> build-rtk/.config
-          mkdir -p build-rtk/target/linux/realtek/files-3.10/etc/init.d
-          cp target/linux/realtek/files-3.10/etc/init.d/rtl8198c-wlan build-rtk/target/linux/realtek/files-3.10/etc/init.d/
-          chmod +x build-rtk/target/linux/realtek/files-3.10/etc/init.d/rtl8198c-wlan
 
       - name: Install build dependencies
         run: |
@@ -64,15 +63,14 @@ jobs:
           ./scripts/feeds install -a || true
           make defconfig
           make -j2 V=s
-          ls -lh bin/realtek/ bin/rtkmips/ 2>/dev/null || true
+          find bin -type f -name '*fw.bin' -o -name '*factory.bin' | sort
 
       - name: Collect firmware
         shell: bash
         run: |
           mkdir -p artifacts
-          find build-rtk/bin -type f \( -name '*GN866*fw.bin' -o -name '*SK337*fw.bin' -o -name '*GN866*bin' -o -name '*SK337*bin' \) -exec cp -v {} artifacts/ \; || true
-          find build-rtk/bin -type f -name '*fw.bin' -exec cp -n {} artifacts/ \; || true
-          printf '%s\n' 'RTL8198C target/linux/realtek build' 'GN866 AC + SK337' 'WLAN auto-start enabled' > artifacts/README.txt
+          find build-rtk/bin -type f \( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \) -exec cp -v {} artifacts/ \; || true
+          printf '%s\n' 'RTL8198C legacy rtkmips build' 'GN866 AC + SK337' 'GPIO/LED/button board sources imported' 'WLAN auto-start enabled' > artifacts/README.txt
           ls -lh artifacts
 
       - name: Upload firmware
