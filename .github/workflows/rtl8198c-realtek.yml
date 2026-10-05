@@ -69,6 +69,8 @@ jobs:
           sed -i 's/^[[:space:]]*#error.*$/  return 0;/' "$FINDUTILS_DIR/gnulib/lib/freadahead.c"
           sed -i 's/^[[:space:]]*#error.*$/  if (0)/' "$FINDUTILS_DIR/gnulib/lib/fseeko.c"
           make tools/findutils/compile V=s
+          make tools/m4/prepare V=s || true
+          find build_dir/host/m4-* -type f -name 'c-stack.c' -print0 | xargs -0 -r sed -i 's/HAVE_LIBSIGSEGV && SIGSTKSZ < 16384/HAVE_LIBSIGSEGV \&\& 0/'
           make tools/cmake/prepare V=s || true
           CMAKE_DIR=$(echo build_dir/host/cmake-2.8.12.2)
           touch "$CMAKE_DIR/.configured" "$CMAKE_DIR/.built"
