@@ -1,0 +1,82 @@
+name: RTL8198C Realtek target build
+
+on:
+  push:
+    branches: [rtl8198c-gn866-sk337]
+    paths:
+      - 'target/linux/realtek/**'
+      - '.github/workflows/rtl8198c-realtek.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout configured OpenWrt tree
+        uses: actions/checkout@v4
+
+      - name: Checkout legacy Realtek OpenWrt SDK
+        uses: actions/checkout@v4
+        with:
+          repository: aborgda/openwrt-rtk819
+          path: legacy
+          fetch-depth: 1
+
+      - name: Prepare legacy RTL8198C build workspace
+        shell: bash
+        run: |
+          set -eux
+          rm -rf build-rtk
+          cp -a legacy/. build-rtk/
+          rm -rf build-rtk/target/linux/rtkmips
+          mkdir -p build-rtk/target/linux/realtek
+          cp -a target/linux/realtek/. build-rtk/target/linux/realtek/
+          cp -a legacy/target/linux/rtkmips/patches-3.10 build-rtk/target/linux/realtek/
+          cp -a legacy/target/linux/rtkmips/files build-rtk/target/linux/realtek/files-3.10
+          cp -a legacy/target/linux/rtkmips/base-files build-rtk/target/linux/realtek/base-files
+          rm -rf build-rtk/target/linux/realtek/image/lzma-loader
+          cp -a legacy/target/linux/rtkmips/image/lzma-loader build-rtk/target/linux/realtek/image/lzma-loader
+          cp target/linux/realtek/image/Makefile.legacy build-rtk/target/linux/realtek/image/Makefile
+          cp legacy/target/linux/rtkmips/Makefile build-rtk/target/linux/realtek/Makefile
+          sed -i 's/BOARD:=rtkmips/BOARD:=realtek/; s/SUBTARGETS:=rtl8198c rtl8954e/SUBTARGETS:=rtl8198c/; s/Realtek mips SOC/Realtek legacy MIPS/' build-rtk/target/linux/realtek/Makefile
+          cp legacy/rtk_deconfig/defconfig_rtl8198c build-rtk/.config
+          {
+            echo 'CONFIG_TARGET_realtek=y'
+            echo 'CONFIG_TARGET_realtek_rtl8198c=y'
+            echo 'CONFIG_TARGET_ROOTFS_SQUASHFS=y'
+            echo 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=4'
+          } >> build-rtk/.config
+          mkdir -p build-rtk/target/linux/realtek/files-3.10/etc/init.d
+          cp target/linux/realtek/files-3.10/etc/init.d/rtl8198c-wlan build-rtk/target/linux/realtek/files-3.10/etc/init.d/
+          chmod +x build-rtk/target/linux/realtek/files-3.10/etc/init.d/rtl8198c-wlan
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev zlib1g-dev gawk flex bison gettext rsync unzip wget python3
+
+      - name: Build GN866 and SK337
+        working-directory: build-rtk
+        shell: bash
+        run: |
+          set -eux
+          ./scripts/feeds update -a || true
+          ./scripts/feeds install -a || true
+          make defconfig
+          make -j2 V=s
+          ls -lh bin/realtek/ bin/rtkmips/ 2>/dev/null || true
+
+      - name: Collect firmware
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          find build-rtk/bin -type f \( -name '*GN866*fw.bin' -o -name '*SK337*fw.bin' -o -name '*GN866*bin' -o -name '*SK337*bin' \) -exec cp -v {} artifacts/ \; || true
+          find build-rtk/bin -type f -name '*fw.bin' -exec cp -n {} artifacts/ \; || true
+          printf '%s\n' 'RTL8198C target/linux/realtek build' 'GN866 AC + SK337' 'WLAN auto-start enabled' > artifacts/README.txt
+          ls -lh artifacts
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: RTL8198C-GN866-SK337
+          path: artifacts/
