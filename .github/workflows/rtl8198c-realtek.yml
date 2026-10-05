@@ -28,8 +28,6 @@ jobs:
           set -eux
           rm -rf build-rtk
           cp -a legacy/. build-rtk/
-          # Keep the proven legacy rtkmips target; target/linux/realtek is
-          # the maintained source tree for our RTL8198C additions.
           cp -a target/linux/realtek/files-3.10/. build-rtk/target/linux/rtkmips/files/
           mkdir -p build-rtk/target/linux/rtkmips/image
           cp target/linux/realtek/image/Makefile.legacy build-rtk/target/linux/rtkmips/image/Makefile
@@ -62,8 +60,16 @@ jobs:
           ./scripts/feeds update -a || true
           ./scripts/feeds install -a || true
           make defconfig
+          # The SDK bundles findutils 4.4.x. Its gnulib assumes pre-2.28 glibc.
+          # Backport the minimal modern-glibc compatibility used by newer gnulib.
+          find build_dir/host -type f \( -name 'freadahead.c' -o -name 'fseeko.c' -o -name 'stdio-impl.h' \) -print0 |
+            xargs -0 -r sed -i               -e 's/_IO_ftrylockfile/_IO_EOF_SEEN/g'               -e 's/_IO_IN_BACKUP/0x100/g'
+          find build_dir/host -type f -name 'freadahead.c' -print0 |
+            xargs -0 -r sed -i '/#error "Please port gnulib freadahead.c/c\  return 0;'
+          find build_dir/host -type f -name 'fseeko.c' -print0 |
+            xargs -0 -r sed -i '/#error "Please port gnulib fseeko.c/c\  if (0)'
           make -j2 V=s
-          find bin -type f -name '*fw.bin' -o -name '*factory.bin' | sort
+          find bin -type f \( -name '*fw.bin' -o -name '*factory.bin' \) -print | sort
 
       - name: Collect firmware
         shell: bash
