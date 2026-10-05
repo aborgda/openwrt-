@@ -105,7 +105,7 @@ p.write_text(s)
 PY
 
 export FORCE_UNSAFE_CONFIGURE=1
-make -j2 V=1
+make -j2 V=1 HOSTCFLAGS="-std=gnu89" HOSTCXXFLAGS="-std=gnu++98"
 
 test -f boards/rtl8198/image/linux.bin
 test -f boards/rtl8198/image/root.bin
