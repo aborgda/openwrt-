@@ -40,9 +40,15 @@ jobs:
           cp -a legacy/target/linux/rtkmips/image/lzma-loader/src/. build-rtk/target/linux/realtek/image/lzma-loader/src/
           chmod +x build-rtk/target/linux/realtek/files-3.10/etc/init.d/rtl8198c-wlan
           cp legacy/rtk_deconfig/defconfig_rtl8198c build-rtk/.config
+          sed -i '/^CONFIG_TARGET_rtkmips/d;/^# CONFIG_TARGET_rtkmips/d;/^CONFIG_TARGET_BOARD=/d;/^CONFIG_TARGET_ARCH_PACKAGES=/d;/^CONFIG_LINUX_3_10=/d' build-rtk/.config
           cat >> build-rtk/.config <<'EOF'
           CONFIG_TARGET_realtek=y
           CONFIG_TARGET_realtek_rtl8198c=y
+          CONFIG_TARGET_realtek_rtl8198c_GN866_AC=y
+          CONFIG_TARGET_realtek_rtl8198c_SK337=y
+          CONFIG_TARGET_BOARD="realtek"
+          CONFIG_TARGET_ARCH_PACKAGES="realtek"
+          CONFIG_LINUX_3_10=y
           CONFIG_TARGET_ROOTFS_SQUASHFS=y
           CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=4
           EOF
