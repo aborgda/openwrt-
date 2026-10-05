@@ -3,7 +3,7 @@ name: GN866 AC legacy vendor build
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, rtl8198c-gn866-sk337]
     paths:
       - "targets/gn866-ac/**"
       - ".github/workflows/gn866-ac-legacy.yml"
