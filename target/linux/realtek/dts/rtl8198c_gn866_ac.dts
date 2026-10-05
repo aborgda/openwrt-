@@ -1,0 +1,13 @@
+/dts-v1/;
+
+/ {
+	model = "GN866 AC";
+	compatible = "realtek,rtl8198c-gn866-ac", "realtek,rtl8198c";
+
+	/* Legacy board data; the 3.10 RTL8198C BSP does not consume DT at boot. */
+	gpio-map {
+		wps-led = <7>;      /* H7 */
+		reset-button = <5>; /* H5 */
+		wps-button = <6>;   /* H6 */
+	};
+};
