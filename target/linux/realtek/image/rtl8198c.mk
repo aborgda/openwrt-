@@ -1,47 +1,63 @@
-# Legacy RTL8198C image format.
-# This follows the original Realtek cvimg/fix_chksum layout:
-# loader + kernel, 4 KiB alignment, squashfs, then firmware checksum.
-BLOCKSIZE_RTL8198C:=4k
+# SPDX-License-Identifier: GPL-2.0-only
+# RTL8198C legacy image format: LZMA loader + kernel + squashfs + cvimg checksum.
 
-define Build/rtl8198c-lzma-loader
- rm -rf $(KDIR)/rtl8198c-lzma-loader
- $(MAKE) -C lzma-loader KDIR=$(KDIR) LINUX_DIR=$(LINUX_DIR)    LOADER=loader-$(DEVICE_NAME).bin    KERNEL_CMDLINE="$(KERNEL_CMDLINE)"    LZMA_TEXT_START=0x80500000 LOADADDR=0x80000000    LOADER_DATA="$(KDIR)/vmlinux.bin.lzma" BOARD="$(DEVICE_NAME)" compile loader.bin
+include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/image.mk
+
+BlockSize=4k
+
+ifeq ($(CONFIG_TARGET_realtek_rtl8198c),y)
+
+define mkcmdline
+board=$(1) console=$(2),$(3) linuxpart=0x$(4) hwpart=0x$(5)
 endef
 
-define Build/rtl8198c-cvimg
- cvimg-rtl8198c linux "$@" "$@.linux" 0x60000 0x20000
- mv "$@.linux" "$@"
+SINGLE_PROFILES :=
+
+define SingleProfile
+  define Image/Build/Profile/$(1)/initramfs
+	$(call Image/BuildLoader,loader-$(SUBTARGET)-$(1),bin,$(call mkcmdline,$(1),$(2),$(3)),$(5))
+	cvimg-$(SUBTARGET) linux $(KDIR)/loader-$(SUBTARGET)-$(1).bin $(BIN_DIR)/$(IMG_PREFIX)-$(1)-ramfs.bin $(5) $(6)
+  endef
+  define Image/Build/Profile/$(1)/squashfs
+	$(call Image/BuildLoader,loader-$(SUBTARGET)-$(1),bin,$(call mkcmdline,$(1),$(2),$(3),$(6),$(7)),$(5))
+	cvimg-$(SUBTARGET) linux $(KDIR)/loader-$(SUBTARGET)-$(1).bin $(BIN_DIR)/$(IMG_PREFIX)-$(1)-linux.bin $(5) $(6)
+	dd if=$(BIN_DIR)/$(IMG_PREFIX)-$(1)-linux.bin of=$(BIN_DIR)/$(IMG_PREFIX)-$(1)-linux_4k.bin bs=4k conv=sync
+	cat $(BIN_DIR)/$(IMG_PREFIX)-$(1)-linux_4k.bin $(KDIR)/root.squashfs-4k > $(BIN_DIR)/$(IMG_PREFIX)-$(1)-fw_4k_cat.bin
+	cvimg-$(SUBTARGET) fix_chksum $(BIN_DIR)/$(IMG_PREFIX)-$(1)-fw_4k_cat.bin $(BIN_DIR)/$(IMG_PREFIX)-$(1)-fw.bin
+	rm -f $(BIN_DIR)/$(IMG_PREFIX)-$(1)-linux_4k.bin $(BIN_DIR)/$(IMG_PREFIX)-$(1)-fw_4k_cat.bin $(BIN_DIR)/$(IMG_PREFIX)-$(1)-linux.bin
+  endef
+  SINGLE_PROFILES += $(1)
 endef
 
-define Build/rtl8198c-fix-checksum
- cvimg-rtl8198c fix_chksum "$@" "$@.new"
- mv "$@.new" "$@"
+define Image/Prepare
+	lzma e $(KDIR)/vmlinux -lc1 -lp2 -pb2 $(KDIR)/vmlinux.bin.lzma
 endef
 
-define Device/rtl8198c
- DEVICE_VENDOR := Realtek
- DEVICE_DTS_DIR := ../dts
- KERNEL_LOADADDR := 0x80500000
- KERNEL := kernel-bin | lzma | rtl8198c-lzma-loader
- IMAGES := factory.bin
+LOADER_MAKE := $(NO_TRACE_MAKE) -C lzma-loader KDIR=$(KDIR) LINUX_DIR=$(LINUX_DIR)
+
+define Image/Build/Clean
+	$(LOADER_MAKE) clean
 endef
 
-define Device/gn866_ac
- $(Device/rtl8198c)
- DEVICE_MODEL := GN866 AC
- DEVICE_NAME := gn866_ac
- FLASH_SIZE := 16M
- KERNEL_CMDLINE := board=gn866_ac console=ttyS0,38400 root=/dev/mtdblock2 linuxpart=0x60000 hwpart=0x20000
- IMAGE/factory.bin := append-kernel | append-rootfs | pad-rootfs | rtl8198c-fix-checksum
+define Image/BuildLoader
+	-rm -rf $(KDIR)/lzma-loader
+	$(LOADER_MAKE) LOADER=$(1).$(2) KERNEL_CMDLINE="$(3)" LZMA_TEXT_START=$(4) LOADADDR=0x80000000 LOADER_DATA="$(KDIR)/vmlinux.bin.lzma" BOARD="$(1)" compile loader.$(2)
 endef
 
-define Device/sk337
- $(Device/rtl8198c)
- DEVICE_MODEL := SK337
- DEVICE_NAME := sk337
- FLASH_SIZE := 32M
- KERNEL_CMDLINE := board=sk337 console=ttyS0,38400 root=/dev/mtdblock2 linuxpart=0x60000 hwpart=0x20000
- IMAGE/factory.bin := append-kernel | append-rootfs | pad-rootfs | rtl8198c-fix-checksum
+$(eval $(call SingleProfile,GN866_AC,ttyS0,38400,root=/dev/mtdblock2,0x80500000,60000,20000))
+$(eval $(call SingleProfile,SK337,ttyS0,38400,root=/dev/mtdblock2,0x80500000,60000,20000))
+
+define Image/Build/Initramfs
+	$(call Image/Build/Profile/$(PROFILE)/initramfs)
 endef
 
-TARGET_DEVICES += gn866_ac sk337
+define Image/Build
+	dd if=$(KDIR)/root.squashfs of=$(KDIR)/root.squashfs-4k bs=4k conv=sync
+	$(call add_jffs2_mark,$(KDIR)/root.squashfs-4k)
+	$(call Image/Build/Profile/$(PROFILE)/squashfs)
+endef
+
+endif
+
+$(eval $(call BuildImage))
