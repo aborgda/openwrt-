@@ -29,12 +29,9 @@ jobs:
           rm -rf build-rtk/target/linux/rtkmips
           mkdir -p build-rtk/target/linux/realtek
           cp -a target/linux/realtek/. build-rtk/target/linux/realtek/
-          # The legacy 3.10 kernel patches are required by the RTL8198C kernel.
           cp -a legacy/target/linux/rtkmips/patches-3.10 build-rtk/target/linux/realtek/patches-3.10
-          # Keep the legacy realtek BSP helper files under the realtek target.
           mkdir -p build-rtk/target/linux/realtek/files-3.10/arch/rlx/soc-rtl819xd
           cp -a target/linux/realtek/rtl8198c/files/. build-rtk/target/linux/realtek/files-3.10/arch/rlx/soc-rtl819xd/
-          # Use the proven legacy LZMA loader implementation, now consumed by target/linux/realtek/image.
           rm -rf build-rtk/target/linux/realtek/image/lzma-loader/src
           mkdir -p build-rtk/target/linux/realtek/image/lzma-loader/src
           cp -a legacy/target/linux/rtkmips/image/lzma-loader/src/. build-rtk/target/linux/realtek/image/lzma-loader/src/
@@ -89,13 +86,13 @@ jobs:
         run: |
           set -eux
           make -j2 V=s
-          find bin -type f \\( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \\) -print | sort
+          find bin -type f \( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \) -print | sort
       - name: Collect firmware
         shell: bash
         run: |
           set -eux
           mkdir -p artifacts
-          find build-rtk/bin -type f \\( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \\) -exec cp -v {} artifacts/ \\; || true
+          find build-rtk/bin -type f \( -name '*fw.bin' -o -name '*factory.bin' -o -name '*linux.bin' \) -exec cp -v {} artifacts/ \; || true
           printf '%s\\n' 'RTL8198C native target/linux/realtek legacy build' 'GN866 AC + SK337' 'DTS/board data + GPIO/LED/button sources' 'Legacy LZMA loader integrated' 'WLAN auto-start enabled' > artifacts/README.txt
           ls -lh artifacts
       - name: Upload firmware
@@ -103,3 +100,5 @@ jobs:
         with:
           name: RTL8198C-GN866-SK337
           path: artifacts/
+
+# Triggered rebuild from ChatGPT on 2026-10-06.
