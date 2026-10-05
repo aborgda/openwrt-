@@ -66,7 +66,9 @@ jobs:
           : > include/site/rlx-openwrt-linux-uclibc
           make tools/findutils/prepare V=s
           FINDUTILS_DIR=$(echo build_dir/host/findutils-*)
-          touch "$FINDUTILS_DIR/.built"
+          sed -i 's/^[[:space:]]*#error.*$/  return 0;/' "$FINDUTILS_DIR/gnulib/lib/freadahead.c"
+          sed -i 's/^[[:space:]]*#error.*$/  if (0)/' "$FINDUTILS_DIR/gnulib/lib/fseeko.c"
+          make tools/findutils/compile V=s
           make tools/cmake/prepare V=s || true
           mkdir -p staging_dir/host/bin
           ln -sf /usr/bin/cmake staging_dir/host/bin/cmake
