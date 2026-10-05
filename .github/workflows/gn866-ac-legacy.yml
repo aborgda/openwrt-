@@ -1,4 +1,5 @@
 name: GN866 AC legacy vendor build
+# WLAN autostart build
 
 on:
   workflow_dispatch:
