@@ -62,6 +62,8 @@ jobs:
         run: |
           set -eux
           make defconfig
+          mkdir -p include/site
+          : > include/site/rlx-openwrt-linux-uclibc
           make tools/findutils/prepare V=s
           find build_dir/host/findutils-* -type f \\( -name 'freadahead.c' -o -name 'fseeko.c' -o -name 'stdio-impl.h' \\) -print0 | xargs -0 -r sed -i -e 's/_IO_ftrylockfile/_IO_EOF_SEEN/g' -e 's/_IO_IN_BACKUP/0x100/g'
           find build_dir/host/findutils-* -type f -name 'freadahead.c' -print0 | xargs -0 -r sed -i '/#error "Please port gnulib freadahead.c/c\\  return 0;'
