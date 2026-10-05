@@ -60,14 +60,15 @@ jobs:
           ./scripts/feeds update -a || true
           ./scripts/feeds install -a || true
           make defconfig
-          # The SDK bundles findutils 4.4.x. Its gnulib assumes pre-2.28 glibc.
-          # Backport the minimal modern-glibc compatibility used by newer gnulib.
-          find build_dir/host -type f \( -name 'freadahead.c' -o -name 'fseeko.c' -o -name 'stdio-impl.h' \) -print0 |
-            xargs -0 -r sed -i               -e 's/_IO_ftrylockfile/_IO_EOF_SEEN/g'               -e 's/_IO_IN_BACKUP/0x100/g'
-          find build_dir/host -type f -name 'freadahead.c' -print0 |
+          # Extract old findutils before patching; its bundled gnulib predates glibc 2.28.
+          make tools/findutils/prepare V=s
+          find build_dir/host/findutils-* -type f \( -name 'freadahead.c' -o -name 'fseeko.c' -o -name 'stdio-impl.h' \) -print0 |
+            xargs -0 -r sed -i -e 's/_IO_ftrylockfile/_IO_EOF_SEEN/g' -e 's/_IO_IN_BACKUP/0x100/g'
+          find build_dir/host/findutils-* -type f -name 'freadahead.c' -print0 |
             xargs -0 -r sed -i '/#error "Please port gnulib freadahead.c/c\  return 0;'
-          find build_dir/host -type f -name 'fseeko.c' -print0 |
+          find build_dir/host/findutils-* -type f -name 'fseeko.c' -print0 |
             xargs -0 -r sed -i '/#error "Please port gnulib fseeko.c/c\  if (0)'
+          make tools/findutils/compile V=s
           make -j2 V=s
           find bin -type f \( -name '*fw.bin' -o -name '*factory.bin' \) -print | sort
 
