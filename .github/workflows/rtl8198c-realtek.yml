@@ -55,7 +55,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake libncurses5-dev zlib1g-dev gawk flex bison gettext rsync unzip wget python3
+          sudo apt-get install -y build-essential cmake squashfs-tools libncurses5-dev zlib1g-dev gawk flex bison gettext rsync unzip wget python3
       - name: Prepare host tools and bypass obsolete CMake 2.8.12.2
         working-directory: build-rtk
         shell: bash
@@ -70,9 +70,17 @@ jobs:
           sed -i 's/^[[:space:]]*#error.*$/  if (0)/' "$FINDUTILS_DIR/gnulib/lib/fseeko.c"
           make tools/findutils/compile V=s
           make tools/cmake/prepare V=s || true
-          mkdir -p staging_dir/host/bin
+          CMAKE_DIR=$(echo build_dir/host/cmake-2.8.12.2)
+          touch "$CMAKE_DIR/.configured" "$CMAKE_DIR/.built"
+          mkdir -p staging_dir/host/bin staging_dir/host/stamp
           ln -sf /usr/bin/cmake staging_dir/host/bin/cmake
-          touch build_dir/host/cmake-2.8.12.2/.built
+          touch staging_dir/host/stamp/.cmake_installed
+          make tools/squashfs4/prepare V=s || true
+          SQUASHFS_DIR=$(echo build_dir/host/squashfs4.2)
+          touch "$SQUASHFS_DIR/.configured" "$SQUASHFS_DIR/.built"
+          ln -sf /usr/bin/mksquashfs staging_dir/host/bin/mksquashfs4
+          ln -sf /usr/bin/unsquashfs staging_dir/host/bin/unsquashfs4
+          touch staging_dir/host/stamp/.squashfs4_installed
       - name: Build GN866 AC and SK337 from target/linux/realtek
         working-directory: build-rtk
         shell: bash
