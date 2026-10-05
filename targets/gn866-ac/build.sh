@@ -21,8 +21,6 @@ git checkout "$SDK_REF"
 test -d "toolchain/$RSDK"
 test -f "boards/rtl8198/Makefile"
 test -f "boards/rtl8198/config.linux-2.6.30.RTL8198_SPI_SQUASHFS"
-test -f "users/boa/tools/cvimg"
-test -f "users/boa/tools/mgbin"
 
 cp .config .config.gn866.base
 python3 - <<'PY'
