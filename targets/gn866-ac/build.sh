@@ -1,120 +1,96 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
-SDK_REPO="https://github.com/frederic/rtl819x-toolchain.git"
-SDK_REF="5c9be5d943318fdb4d048ae22078129594eb5a10"
-RSDK="rsdk-1.5.5-5281-EB-2.6.30-0.9.30.3-110714"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WORK="$ROOT/.gn866-build"
+SDK_TARBALL="$WORK/rtl819x-SDK-3.4.7.3-original.tar.gz"
+SDK_URL="https://www.dropbox.com/scl/fi/ul5lp3t4rk9f8gwm7tabz/rtl819x-SDK-3.4.7.3-original.tar.gz?rlkey=nsx7nw5u4sqc4xu6rhb552v0f&dl=1"
+JOBS="${JOBS:-1}"
 
-echo "GN866 AC legacy build"
-echo "SoC: RTL8198C"
-echo "WLAN: RTL8192ER + RTL8812AR"
-echo "Flash: 16 MiB"
+rm -rf "$WORK"
+mkdir -p "$WORK" "$ROOT/artifacts"
 
-if [ ! -d sdk ]; then
-    git clone --depth 1 "$SDK_REPO" sdk
+echo "GN866 AC / RTL8198C"
+echo "SDK: RTL819X SDK 3.4.7.3"
+echo "WLAN: RTL8192E/8192EE + RTL8812A"
+echo "Ubuntu legacy build path: Ubuntu 20.04"
+
+wget --retry-connrefused --tries=5 --timeout=60 -O "$SDK_TARBALL" "$SDK_URL"
+test "$(stat -c '%s' "$SDK_TARBALL")" -eq 500206571
+
+tar -xzf "$SDK_TARBALL" -C "$WORK"
+SDK="$WORK/rtl819x-SDK-3.4.7.3-original/rtl819x"
+cd "$SDK"
+
+BB="$SDK/users/busybox-1.13"
+if [[ -f "$BB/Makefile" ]]; then
+  sed -i 's/rm -rf include;/# preserve source include headers;/' "$BB/Makefile" || true
 fi
 
-cd sdk
-git fetch --depth 1 origin "$SDK_REF"
-git checkout "$SDK_REF"
+# Use the vendor board configuration; no menuconfig is required.
+cp boards/rtl8198C_8954E/config.linux-3.10.RTL8198C_8812_92E_GW linux-3.10/.config
+cp boards/rtl8198C_8954E/config.users.RTL8198C_8812_92E_GW users/.config
+cp boards/rtl8198C_8954E/config.busybox-1.13.RTL8198C_8812_92E_GW users/busybox-1.13/.config
 
-test -d "toolchain/$RSDK"
-test -f "boards/rtl8198/Makefile"
-test -f "boards/rtl8198/config.linux-2.6.30.RTL8198_SPI_SQUASHFS"
-test -f "users/boa/tools/cvimg"
-test -f "users/boa/tools/mgbin"
+cat > .config <<'EOF'
+CONFIG_BOARD_rtl8198C_8954E=y
+CONFIG_LINUX_3.10=y
+CONFIG_BZBOX_busybox-1.13=y
+CONFIG_RSDK_msdk-4.4.7-mips-EB-3.10-0.9.33-m32t-131227b=y
+CONFIG_MODEL_RTL8198C_8812_92E_GW=y
+CONFIG_ARCH_CPU_MIPS=y
+EOF
 
-cp .config .config.gn866.base
-python3 - <<'PY'
-from pathlib import Path
-import re
+# Keep both radio slots enabled as supplied by the vendor GN866-compatible board config.
+grep -q '^CONFIG_SLOT_0_8192EE=y' linux-3.10/.config
+grep -q '^CONFIG_SLOT_1_8812=y' linux-3.10/.config
+grep -q '^CONFIG_RTL_8812_SUPPORT=y' linux-3.10/.config
 
-p = Path(".config.gn866.base")
-s = p.read_text()
-
-repl = {
-    "# CONFIG_BOARD_rtl8196e is not set": "CONFIG_BOARD_rtl8198=y",
-    "CONFIG_BOARD_rtl8196e=y": "# CONFIG_BOARD_rtl8196e is not set\nCONFIG_BOARD_rtl8198=y",
-    "# CONFIG_BOARD_rtl8198 is not set": "CONFIG_BOARD_rtl8198=y",
-    "CONFIG_RSDK_rsdk-1.3.6-4181-EB-2.6.30-0.9.30=y": "# CONFIG_RSDK_rsdk-1.3.6-4181-EB-2.6.30-0.9.30 is not set",
-    "# CONFIG_RSDK_rsdk-1.5.5-5281-EB-2.6.30-0.9.30.3-110714 is not set": "CONFIG_RSDK_rsdk-1.5.5-5281-EB-2.6.30-0.9.30.3-110714=y",
-    "CONFIG_BOARDDIR=boards/rtl8196e": "CONFIG_BOARDDIR=boards/rtl8198",
-    "CONFIG_RSDKDIR=toolchain/rsdk-1.3.6-4181-EB-2.6.30-0.9.30": "CONFIG_RSDKDIR=toolchain/rsdk-1.5.5-5281-EB-2.6.30-0.9.30.3-110714",
-    "CONFIG_MODEL=RTL8196E_88E_GW": "CONFIG_MODEL=RTL8198_SPI_SQUASHFS",
-}
-for a, b in repl.items():
-    s = s.replace(a, b)
-
-if "CONFIG_BOARD_rtl8198=y" not in s:
-    s += "\nCONFIG_BOARD_rtl8198=y\n"
-if "CONFIG_MODEL=RTL8198_SPI_SQUASHFS" not in s:
-    s += "\nCONFIG_MODEL=RTL8198_SPI_SQUASHFS\n"
-if "CONFIG_BOARDDIR=boards/rtl8198" not in s:
-    s += "\nCONFIG_BOARDDIR=boards/rtl8198\n"
-if "CONFIG_RSDKDIR=toolchain/rsdk-1.5.5-5281-EB-2.6.30-0.9.30.3-110714" not in s:
-    s += "\nCONFIG_RSDKDIR=toolchain/rsdk-1.5.5-5281-EB-2.6.30-0.9.30.3-110714\n"
-
-p.write_text(s)
-PY
-cp .config.gn866.base .config
-
-cp boards/rtl8198/config.linux-2.6.30.RTL8198_SPI_SQUASHFS linux-2.6.30/.config
-
-python3 - <<'PY'
-from pathlib import Path
-import re
-
-p = Path("linux-2.6.30/.config")
-s = p.read_text()
-
-def setopt(name, value):
-    global s
-    s = re.sub(r"^# CONFIG_" + re.escape(name) + r" is not set\n", "", s, flags=re.M)
-    s = re.sub(r"^CONFIG_" + re.escape(name) + r"=.*\n", "", s, flags=re.M)
-    s += f"CONFIG_{name}={value}\n"
-
-setopt("RTL8192E", "m")
-setopt("WLAN_HAL_8192EE", "y")
-if "CONFIG_RTL8192CD=" not in s:
-    s += "CONFIG_RTL8192CD=m\n"
-
-p.write_text(s)
-PY
-
-python3 - <<'PY'
-from pathlib import Path
-p = Path("boards/rtl8198/Makefile")
-s = p.read_text()
-needle = 'ifeq ($(CONFIG_RTL8192CD),m)\n\tsed -i "14i insmod /lib/modules/2.6.30.9/kernel/drivers/net/wireless/rtl8192cd/rtl8192cd.ko" $(DIR_ROMFS)/etc/init.d/rcS\nendif\n'
-if needle in s and "GN866 WLAN auto-start" not in s:
-    block = needle + '''
-# GN866 WLAN auto-start
-ifeq ($(CONFIG_RTL8192E),m)
-\tsed -i '15i insmod /lib/modules/2.6.30.9/kernel/drivers/net/wireless/rtl8192e/rtl8192e.ko 2>/dev/null || true' $(DIR_ROMFS)/etc/init.d/rcS
-endif
-\tcat >> $(DIR_ROMFS)/etc/init.d/rcS <<'EOF_GN866_WLAN'
-# GN866 WLAN auto-start
-for _if in wlan0 wlan1; do
-\tif [ -d /sys/class/net/$_if ]; then
-\t\tifconfig "$_if" up 2>/dev/null || true
-\tfi
+# Legacy Kconfig/GCC compatibility.
+for f in config/zconf.hash.c config/zconf.hash.c_shipped linux-3.10/scripts/kconfig/zconf.hash.c linux-3.10/scripts/kconfig/zconf.hash.c_shipped; do
+  if [[ -f "$f" ]]; then
+    sed -i -E 's/^[[:space:]]*const struct kconf_id \*/static const struct kconf_id */' "$f"
+    sed -i 's/static static const/static const/g' "$f"
+    sed -i '/__attribute__ ((__gnu_inline__))/d' "$f"
+  fi
 done
-EOF_GN866_WLAN
-'''
-    s = s.replace(needle, block)
 
-p.write_text(s)
-PY
+for f in users/squashfs4.0/squashfs-tools/mksquashfs.c users/squashfs4.0/squashfs-tools/unsquashfs.c; do
+  if [[ -f "$f" ]]; then
+    sed -i 's/^inline void inc_progress_bar(/static inline void inc_progress_bar(/' "$f"
+    sed -i 's/^inline void update_progress_bar(/static inline void update_progress_bar(/' "$f"
+    sed -i 's/^inline void waitforthread(/static inline void waitforthread(/' "$f"
+    sed -i 's/^inline void add_dir_entry(/static inline void add_dir_entry(/' "$f"
+    grep -q 'sys/sysmacros.h' "$f" || sed -i '1i#include <sys/sysmacros.h>' "$f"
+  fi
+done
 
+TOOLBIN="$SDK/toolchain/msdk-4.4.7-mips-EB-3.10-0.9.33-m32t-131227b/bin"
+for t in "$TOOLBIN"/msdk-linux-*; do
+  [[ -e "$t" ]] || continue
+  n="$TOOLBIN/rsdk-linux-${t##*/msdk-linux-}"
+  [[ -e "$n" ]] || ln -s "${t##*/}" "$n"
+done
+
+export HOSTCFLAGS="${HOSTCFLAGS:-} -fgnu89-inline"
+export CPPFLAGS="${CPPFLAGS:-} -Utrue -Ufalse"
+export CFLAGS="${CFLAGS:-} -fno-pie"
+export LDFLAGS="${LDFLAGS:-} -no-pie"
 export FORCE_UNSAFE_CONFIGURE=1
-make -j2 V=1
 
-test -f boards/rtl8198/image/linux.bin
-test -f boards/rtl8198/image/root.bin
+# Vendor scripts use bashisms through /bin/sh.
+ln -sf /bin/bash /bin/sh
 
-mkdir -p boards/rtl8198/image
-rm -f boards/rtl8198/image/GN866_factory.bin
-./users/boa/tools/mgbin -c   -o boards/rtl8198/image/GN866_factory.bin   boards/rtl8198/image/linux.bin   boards/rtl8198/image/webpages.bin   boards/rtl8198/image/root.bin
+cp .config .oldconfig
 
-test -s boards/rtl8198/image/GN866_factory.bin
-echo "GN866_factory.bin created"
+make -j"$JOBS" V=1 HOSTCFLAGS="$HOSTCFLAGS" CPPFLAGS="$CPPFLAGS"
+
+echo "== collecting GN866 images =="
+find "$SDK" -type f \( -iname '*.bin' -o -iname '*.img' -o -iname '*.trx' -o -iname '*.web' \) -size +64k -print0 |
+while IFS= read -r -d '' f; do
+  cp -v "$f" "$ROOT/artifacts/"
+done
+
+cp -f linux-3.10/.config "$ROOT/artifacts/linux-3.10.config"
+cp -f .config "$ROOT/artifacts/sdk.config"
+find "$ROOT/artifacts" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
