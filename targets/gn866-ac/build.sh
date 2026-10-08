@@ -7,7 +7,7 @@ RSDK="rsdk-1.5.5-5281-EB-2.6.30-0.9.30.3-110714"
 
 echo "GN866 AC legacy build"
 echo "SoC: RTL8198C"
-echo "WLAN: RTL8192ER + RTL8812BRH"
+echo "WLAN: RTL8192ER + RTL8812AR"
 echo "Flash: 16 MiB"
 
 if [ ! -d sdk ]; then
