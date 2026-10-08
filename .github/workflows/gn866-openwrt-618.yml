@@ -82,12 +82,9 @@ jobs:
           KDIR="$(find build_dir/target-* -maxdepth 3 -type d -name 'linux-6.18.*' | head -n1)"
           test -n "$KDIR"
           echo "Kernel tree: $KDIR"
-          CROSS_COMPILE="$(find "$(pwd)/staging_dir" -type f -name 'mips-openwrt-linux-musl-gcc' -print -quit | sed 's/gcc$//')"
-          test -n "$CROSS_COMPILE"
-          echo "CROSS_COMPILE=$CROSS_COMPILE"
-          # olddefconfig accepts every new kernel symbol at its upstream
-          # default without opening an interactive prompt.
-          make -C "$KDIR" ARCH=mips CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
+          # olddefconfig is a host-side Kconfig operation; it does not
+          # need the MIPS cross compiler to exist yet.
+          make -C "$KDIR" ARCH=mips olddefconfig
           # Keep the generated config so the following OpenWrt compile does
           # not fall back to interactive oldconfig/syncconfig.
           cp "$KDIR/.config" artifacts/prepared-kernel.config
