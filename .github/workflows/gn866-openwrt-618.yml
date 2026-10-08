@@ -10,7 +10,7 @@ on:
       - ".github/workflows/gn866-openwrt-618.yml"
 
 concurrency:
-  group: gn866-openwrt-618-${{ github.ref }}
+  group: gn866-openwrt-618-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -36,11 +36,13 @@ jobs:
           printf 'int main(void){return 0;}\n' | gcc -x c - -o /tmp/cc-test
           printf '#include <ncurses.h>\nint main(void){return 0;}\n' | gcc -x c - -lncurses -o /tmp/nc-test
 
-      - name: Update feeds
+      - name: Prepare local packages
         shell: bash
         run: |
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          set -eux
+          # GN866 build is intentionally self-contained. Do not block the
+          # firmware build on external feed git servers.
+          mkdir -p package/kernel
 
       - name: Configure GN866 RTL8198C
         shell: bash
@@ -61,7 +63,6 @@ jobs:
           CONFIG_PACKAGE_linux-firmware=y
           CONFIG_PACKAGE_wpad-basic-mbedtls=y
           CONFIG_PACKAGE_uhttpd=y
-          CONFIG_PACKAGE_luci=y
           EOF
           # The local target.mk/image Makefile registers the GN866 device.
           # FORCE bypasses OpenWrt's over-strict prerequisite probe in the
