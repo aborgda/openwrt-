@@ -67,42 +67,28 @@ jobs:
           make FORCE=1 defconfig
           grep -E 'CONFIG_TARGET_realtek|CONFIG_PACKAGE_kmod-(rtl8192|rtl8822|rtw88)|CONFIG_KERNEL_PATCHVER' .config || true
 
-      - name: Prepare Linux 6.18 non-interactive config
+      - name: Prepare Linux 6.18 kernel tree
         shell: bash
         env:
           FORCE_UNSAFE_CONFIGURE: "1"
         run: |
           set -eux
           mkdir -p artifacts
-          # Generate the OpenWrt target configuration first.
+          # Do not run kernel oldconfig directly with the host gcc.
+          # OpenWrt's target/linux build passes the MIPS cross compiler and
+          # target-specific KERNEL_MAKE_FLAGS correctly.
           make -j2 V=sc FORCE=1 target/linux/prepare
-          KDIR="$(find build_dir/target-* -maxdepth 3 -type d -name 'linux-6.18.*' | head -n1)"
-          test -n "$KDIR"
-          echo "Kernel tree: $KDIR"
-          # olddefconfig is a host-side Kconfig operation; it does not
-          # need the MIPS cross compiler to exist yet.
-          # Complete every newly introduced kernel symbol non-interactively.
-          # The empty answers accept kernel defaults, preventing syncconfig from
-          # stopping the CI build on a NEW prompt.
-          set +o pipefail
-          yes "" | make -C "$KDIR" ARCH=mips oldconfig || rc=$?
-          set -o pipefail
-          # GNU make may exit 141 when the yes(1) producer is closed by kconfig; this is not a build failure.
-          if [[ "${rc:-0}" -ne 0 && "${rc:-0}" -ne 141 ]]; then exit "$rc"; fi
-          make -C "$KDIR" ARCH=mips olddefconfig
-          # Keep the generated config so the following OpenWrt compile does
-          # not fall back to interactive oldconfig/syncconfig.
-          cp "$KDIR/.config" artifacts/prepared-kernel.config
+          find build_dir/target-* -maxdepth 4 -type f -path '*/linux-6.18.*/.config' -print -exec cp -f {} artifacts/prepared-kernel.config \; || true
 
       - name: Build GN866 firmware
         shell: bash
         env:
           FORCE_UNSAFE_CONFIGURE: "1"
+          KCONFIG_NONINTERACTIVE: "1"
+          KCONFIG_NOSILENTUPDATE: "1"
         run: |
           set -o pipefail
           mkdir -p artifacts
-          export KCONFIG_NONINTERACTIVE=1
-          export KCONFIG_NOSILENTUPDATE=1
           make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
           rc=${PIPESTATUS[0]}
           set -o pipefail
