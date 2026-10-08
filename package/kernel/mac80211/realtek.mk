@@ -16,6 +16,7 @@ config-$(call config_package,rtlwifi-usb) += RTLWIFI_USB
 config-$(call config_package,rtl8192c-common) += RTL8192C_COMMON
 config-$(call config_package,rtl8192ce) += RTL8192CE
 config-$(call config_package,rtl8192se) += RTL8192SE
+config-$(call config_package,rtl8192ee) += RTL8192EE
 config-$(call config_package,rtl8192d-common) += RTL8192D_COMMON
 config-$(call config_package,rtl8192de) += RTL8192DE
 config-$(call config_package,rtl8192du) += RTL8192DU
@@ -132,6 +133,14 @@ define KernelPackage/rtl8192ce
   DEPENDS+= +kmod-rtlwifi-pci +kmod-rtl8192c-common +rtl8192ce-firmware
   FILES:= $(PKG_BUILD_DIR)/drivers/net/wireless/realtek/rtlwifi/rtl8192ce/rtl8192ce.ko
   AUTOLOAD:=$(call AutoProbe,rtl8192ce)
+endef
+
+define KernelPackage/rtl8192ee
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=Realtek RTL8192EE/RTL8192ENB support
+  DEPENDS+= +kmod-rtlwifi-pci
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/realtek/rtlwifi/rtl8192ee/rtl8192ee.ko
+  AUTOLOAD:=$(call AutoProbe,rtl8192ee)
 endef
 
 define KernelPackage/rtl8192se
