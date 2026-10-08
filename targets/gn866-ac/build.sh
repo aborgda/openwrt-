@@ -13,7 +13,7 @@ mkdir -p "$WORK" "$ROOT/artifacts"
 echo "GN866 AC / RTL8198C"
 echo "SDK: RTL819X SDK 3.4.7.3"
 echo "WLAN: RTL8192E/8192EE + RTL8812A"
-echo "Ubuntu legacy build path: Ubuntu 20.04"
+echo "GN866 target: RTL8198C / Linux 3.10 / legacy Realtek image path"
 
 wget --retry-connrefused --tries=5 --timeout=60 -O "$SDK_TARBALL" "$SDK_URL"
 test "$(stat -c '%s' "$SDK_TARBALL")" -eq 500206571
@@ -84,6 +84,11 @@ ln -sf /bin/bash /bin/sh
 cp .config .oldconfig
 
 make -j"$JOBS" V=1 HOSTCFLAGS="$HOSTCFLAGS" CPPFLAGS="$CPPFLAGS"
+
+# Also validate the OpenWrt tree target definitions without invoking menuconfig.
+cd "$ROOT"
+make defconfig
+make -s target/linux/realtek/prepare SUBTARGET=rtl8198c V=s
 
 echo "== collecting GN866 images =="
 find "$SDK" -type f \( -iname '*.bin' -o -iname '*.img' -o -iname '*.trx' -o -iname '*.web' \) -size +64k -print0 |
