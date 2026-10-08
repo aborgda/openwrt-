@@ -84,7 +84,11 @@ jobs:
           # Complete every newly introduced kernel symbol non-interactively.
           # The empty answers accept kernel defaults, preventing syncconfig from
           # stopping the CI build on a NEW prompt.
-          yes "" | make -C "$KDIR" ARCH=mips oldconfig
+          set +o pipefail
+          yes "" | make -C "$KDIR" ARCH=mips oldconfig || rc=$?
+          set -o pipefail
+          # GNU make may exit 141 when the yes(1) producer is closed by kconfig; this is not a build failure.
+          if [[ "${rc:-0}" -ne 0 && "${rc:-0}" -ne 141 ]]; then exit "$rc"; fi
           make -C "$KDIR" ARCH=mips olddefconfig
           # Keep the generated config so the following OpenWrt compile does
           # not fall back to interactive oldconfig/syncconfig.
