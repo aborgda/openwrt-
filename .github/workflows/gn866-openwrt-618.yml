@@ -69,6 +69,25 @@ jobs:
           make FORCE=1 defconfig
           grep -E 'CONFIG_TARGET_realtek|CONFIG_PACKAGE_kmod-(rtl8192|rtl8822|rtw88)|CONFIG_KERNEL_PATCHVER' .config || true
 
+      - name: Prepare Linux 6.18 non-interactive config
+        shell: bash
+        env:
+          FORCE_UNSAFE_CONFIGURE: "1"
+        run: |
+          set -eux
+          # Generate the OpenWrt target configuration first.
+          make -j2 V=sc FORCE=1 target/linux/prepare
+          KDIR="$(find build_dir/target-* -maxdepth 3 -type d -name 'linux-6.18.*' | head -n1)"
+          test -n "$KDIR"
+          echo "Kernel tree: $KDIR"
+          # olddefconfig accepts every new kernel symbol at its upstream
+          # default without opening an interactive prompt.
+          make -C "$KDIR" ARCH=mips CROSS_COMPILE="$(pwd)/staging_dir/toolchain-*/bin/mips-openwrt-linux-musl-" olddefconfig
+          touch "$KDIR/.configured"
+          # Keep the generated config so the following OpenWrt compile does
+          # not fall back to interactive oldconfig/syncconfig.
+          cp "$KDIR/.config" artifacts-prepared-kernel.config
+
       - name: Build GN866 firmware
         shell: bash
         env:
@@ -76,12 +95,8 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
-          # Linux 6.18 can ask Kconfig questions when the target config is
-          # older/incomplete. Feed empty answers so every new symbol takes
-          # its default instead of stopping the unattended firmware build.
-          set +o pipefail
-          yes '' | make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
-          rc=${PIPESTATUS[1]}
+          make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
+          rc=${PIPESTATUS[0]}
           set -o pipefail
           exit "$rc"
 
