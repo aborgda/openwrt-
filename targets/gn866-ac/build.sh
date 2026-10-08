@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$ROOT/.gn866-build"
 SDK_TARBALL="$WORK/rtl819x-SDK-3.4.7.3-original.tar.gz"
-SDK_URL="https://www.dropbox.com/scl/fi/ul5lp3t4rk9f8gwm7tabz/rtl819x-SDK-3.4.7.3-original.tar.gz?rlkey=nsx7nw5u4sqc4xu6rhb552v0f&dl=1"
+SDK_URL="https://dl.dropboxusercontent.com/scl/fi/ul5lp3t4rk9f8gwm7tabz/rtl819x-SDK-3.4.7.3-original.tar.gz?rlkey=nsx7nw5u4sqc4xu6rhb552v0f&dl=1"
 JOBS="${JOBS:-1}"
 
 rm -rf "$WORK"
