@@ -83,7 +83,7 @@ LDFLAGS		= -static -nostdlib -T linker/linker.ld --no-warn-mismatch
 
 O_FORMAT	= $(shell $(OBJDUMP) -i | head -2 | grep elf32)
 
-SOURCES		= src/startup.S src/main.c src/board.c src/memory.c src/unlzma.c
+SOURCES		= src/startup.S src/main.c src/board-rtl8198c.c src/memory.c src/unlzma.c
 
 BUILD_DIR	?= build
 
