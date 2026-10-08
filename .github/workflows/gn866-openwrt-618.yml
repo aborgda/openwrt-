@@ -76,7 +76,14 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
-          make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
+          # Linux 6.18 can ask Kconfig questions when the target config is
+          # older/incomplete. Feed empty answers so every new symbol takes
+          # its default instead of stopping the unattended firmware build.
+          set +o pipefail
+          yes '' | make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
+          rc=${PIPESTATUS[1]}
+          set -o pipefail
+          exit "$rc"
 
       - name: Verify output
         if: always()
