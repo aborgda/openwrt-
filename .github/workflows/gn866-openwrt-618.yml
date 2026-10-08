@@ -84,6 +84,10 @@ jobs:
           echo "Kernel tree: $KDIR"
           # olddefconfig is a host-side Kconfig operation; it does not
           # need the MIPS cross compiler to exist yet.
+          # Complete every newly introduced kernel symbol non-interactively.
+          # The empty answers accept kernel defaults, preventing syncconfig from
+          # stopping the CI build on a NEW prompt.
+          yes "" | make -C "$KDIR" ARCH=mips oldconfig
           make -C "$KDIR" ARCH=mips olddefconfig
           # Keep the generated config so the following OpenWrt compile does
           # not fall back to interactive oldconfig/syncconfig.
@@ -96,6 +100,8 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
+          export KCONFIG_NONINTERACTIVE=1
+          export KCONFIG_NOSILENTUPDATE=1
           make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
           rc=${PIPESTATUS[0]}
           set -o pipefail
