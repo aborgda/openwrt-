@@ -6,6 +6,8 @@ on:
     branches: [main, rtl8198c-gn866-sk337]
     paths:
       - "targets/gn866-ac/**"
+      - "target/linux/realtek/**"
+      - "package/kernel/rtl819x/**"
       - ".github/workflows/gn866-ac-legacy.yml"
 
 jobs:
