@@ -102,7 +102,8 @@ jobs:
           mkdir -p artifacts
           # Feed blank answers to any remaining legacy Kconfig prompts.
           yes '' | make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
-          rc=${PIPESTATUS[0]}
+          status=("${PIPESTATUS[@]}")
+          rc=${status[1]}
           set -o pipefail
           exit "$rc"
 
