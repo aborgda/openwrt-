@@ -25,9 +25,9 @@ jobs:
         shell: bash
         run: |
           export DEBIAN_FRONTEND=noninteractive
-          dpkg --add-architecture i386
-          apt-get update
-          apt-get install -y build-essential gcc g++ make git python3 file bison flex gettext rsync unzip zip xz-utils bzip2 gzip cpio patch wget curl libncurses5-dev libncurses-dev gcc-multilib g++-multilib libc6-dev-i386 libc6-i386 lib32z1 lib32stdc++6 zlib1g-dev zlib1g:i386
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc g++ make git python3 file bison flex gettext rsync unzip zip xz-utils bzip2 gzip cpio patch wget curl libncurses5-dev libncurses-dev gcc-multilib g++-multilib libc6-dev-i386 libc6-i386 lib32z1 lib32stdc++6 zlib1g-dev zlib1g:i386
 
       - name: Build GN866 AC
         shell: bash
