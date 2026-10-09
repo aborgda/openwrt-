@@ -53,15 +53,12 @@ jobs:
           CONFIG_TARGET_DEVICE_realtek_rtl8198c_DEVICE_gn866_ac=y
           CONFIG_TARGET_ARCH_PACKAGES="mips_24kc"
           CONFIG_PACKAGE_kmod-rtl8192ee=y
-          CONFIG_PACKAGE_kmod-rtl8192er=y
-          CONFIG_PACKAGE_kmod-rtl8192enb=y
           CONFIG_PACKAGE_kmod-rtw88=y
           CONFIG_PACKAGE_kmod-rtw88-pci=y
           CONFIG_PACKAGE_kmod-rtw88-8812a=y
+          CONFIG_PACKAGE_linux-firmware-realtek=y
           CONFIG_PACKAGE_kmod-rtw88-8822b=y
           CONFIG_PACKAGE_kmod-rtw88-8822be=y
-          CONFIG_PACKAGE_kmod-rtl8822b=y
-          CONFIG_PACKAGE_kmod-rtl8822be=y
           CONFIG_PACKAGE_linux-firmware=y
           CONFIG_PACKAGE_wpad-basic-mbedtls=y
           CONFIG_PACKAGE_uhttpd=y
