@@ -53,7 +53,7 @@ jobs:
           CONFIG_TARGET_realtek=y
           CONFIG_TARGET_realtek_rtl8198c=y
           CONFIG_TARGET_ARCH_PACKAGES="mips_24kc"
-          CONFIG_PACKAGE_kmod-rtl8192e=y
+          CONFIG_PACKAGE_kmod-rtl8192ee=y
           CONFIG_PACKAGE_kmod-rtw88=y
           CONFIG_PACKAGE_kmod-rtw88-pci=y
           CONFIG_PACKAGE_kmod-rtw88-8822b=y
