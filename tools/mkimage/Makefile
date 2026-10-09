@@ -33,6 +33,10 @@ define Host/Configure
 		--disable TOOLS_KWBIMAGE \
 		--disable TOOLS_LIBCRYPTO \
 		--disable TOOLS_MKEFICAPSULE
+
+	# scripts/config edits .config directly; refresh generated Kconfig state
+	# before tools-only so newer U-Boot releases do not fail syncconfig.
+	$(MAKE) -C $(HOST_BUILD_DIR) olddefconfig
 endef
 
 define Host/Compile
