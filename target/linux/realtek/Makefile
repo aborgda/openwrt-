@@ -9,7 +9,7 @@ DEVICE_TYPE:=basic
 FEATURES:=ramdisk squashfs
 SUBTARGETS:=rtl838x rtl839x rtl930x rtl930x_nand rtl931x rtl931x_nand rtl8198c
 
-# Modern OpenWrt port for GN866 / RTL8198C.
+# GN866 uses the Linux 6.18 port in this tree.
 KERNEL_PATCHVER:=6.18
 
 define Target/Description
@@ -24,9 +24,6 @@ DEFAULT_PACKAGES += \
 	kmod-gpio-button-hotplug \
 	odhcp6c \
 	uboot-envtools \
-	kmod-rtl8192enb \
-	kmod-rtl8822be \
-	kmod-rtl8822b \
 	linux-firmware
 
 $(eval $(call BuildTarget))
