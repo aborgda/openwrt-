@@ -90,7 +90,12 @@ jobs:
           export KCONFIG_NONINTERACTIVE=1
           # Some MIPS Kconfig symbols still prompt despite KCONFIG_NONINTERACTIVE.
           # Feed empty answers so Kconfig selects defaults instead of aborting in CI.
+          set +e
           yes '' | make -j2 V=sc FORCE=1 target/linux/prepare
+          statuses=("${PIPESTATUS[@]}")
+          rc=${statuses[1]}
+          set -e
+          if [ "$rc" -ne 0 ]; then exit "$rc"; fi
           find build_dir/target-* -maxdepth 4 -type f -path '*/linux-6.18.*/.config' -print -exec cp -f {} artifacts/prepared-kernel.config \; || true
 
       - name: Build GN866 firmware
@@ -101,10 +106,11 @@ jobs:
           set -o pipefail
           mkdir -p artifacts
           # Feed blank answers to any remaining legacy Kconfig prompts.
+          set +e
           yes '' | make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
           status=("${PIPESTATUS[@]}")
           rc=${status[1]}
-          set -o pipefail
+          set -e
           exit "$rc"
 
       - name: Verify output
