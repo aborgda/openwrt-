@@ -84,6 +84,10 @@ jobs:
           # Do not run kernel oldconfig directly with the host gcc.
           # OpenWrt's target/linux build passes the MIPS cross compiler and
           # target-specific KERNEL_MAKE_FLAGS correctly.
+          # This kernel Kconfig starts asking interactive MIPS board questions
+          # on a clean Ubuntu runner. Force its sync path to non-interactive and
+          # preserve the explicit GN866 kernel config supplied in this repository.
+          export KCONFIG_NONINTERACTIVE=1
           make -j2 V=sc FORCE=1 target/linux/prepare
           find build_dir/target-* -maxdepth 4 -type f -path '*/linux-6.18.*/.config' -print -exec cp -f {} artifacts/prepared-kernel.config \; || true
 
