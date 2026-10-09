@@ -79,7 +79,7 @@ export LDFLAGS="${LDFLAGS:-} -no-pie"
 export FORCE_UNSAFE_CONFIGURE=1
 
 # Vendor scripts use bashisms through /bin/sh.
-ln -sf /bin/bash /bin/sh
+sudo ln -sf /bin/bash /bin/sh
 
 cp .config .oldconfig
 
