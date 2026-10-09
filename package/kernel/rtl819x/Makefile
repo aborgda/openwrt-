@@ -1,26 +1,25 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=rtl819x-gn866-wlan-compat
-PKG_RELEASE:=4
+PKG_RELEASE:=5
 
 include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/package.mk
 
-# These packages are stable GN866 configuration names. The actual modules are
-# provided by OpenWrt's in-tree rtlwifi/rtw88 drivers; do not ship copied
-# vendor modules built against a different kernel ABI.
+# Compatibility names for GN866 images. Use the in-tree Linux drivers so
+# modules are built against the exact OpenWrt kernel ABI.
 define KernelPackage/rtl8192enb
   SUBMENU:=Wireless Drivers
-  TITLE:=RTL8192E/ENB compatibility metapackage
-  DEPENDS:=+kmod-rtl8192e
+  TITLE:=RTL8192ENB compatibility metapackage
+  DEPENDS:=+kmod-rtl8192ee
   HIDDEN:=1
 endef
 $(eval $(call KernelPackage,rtl8192enb))
 
 define KernelPackage/rtl8192er
   SUBMENU:=Wireless Drivers
-  TITLE:=RTL8192E/ER compatibility metapackage
-  DEPENDS:=+kmod-rtl8192e
+  TITLE:=RTL8192ER compatibility metapackage
+  DEPENDS:=+kmod-rtl8192ee
   HIDDEN:=1
 endef
 $(eval $(call KernelPackage,rtl8192er))
