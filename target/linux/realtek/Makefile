@@ -24,6 +24,10 @@ DEFAULT_PACKAGES += \
 	kmod-gpio-button-hotplug \
 	odhcp6c \
 	uboot-envtools \
-	linux-firmware
+	kmod-rtw88-8822be \
+	kmod-rtw88-8822b \
+	kmod-rtw88-8812a \
+	kmod-rtl8192ee \
+	linux-firmware-realtek
 
 $(eval $(call BuildTarget))
