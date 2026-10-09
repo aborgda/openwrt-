@@ -88,7 +88,9 @@ jobs:
           # on a clean Ubuntu runner. Force its sync path to non-interactive and
           # preserve the explicit GN866 kernel config supplied in this repository.
           export KCONFIG_NONINTERACTIVE=1
-          make -j2 V=sc FORCE=1 target/linux/prepare
+          # Some MIPS Kconfig symbols still prompt despite KCONFIG_NONINTERACTIVE.
+          # Feed empty answers so Kconfig selects defaults instead of aborting in CI.
+          yes '' | make -j2 V=sc FORCE=1 target/linux/prepare
           find build_dir/target-* -maxdepth 4 -type f -path '*/linux-6.18.*/.config' -print -exec cp -f {} artifacts/prepared-kernel.config \; || true
 
       - name: Build GN866 firmware
@@ -98,7 +100,8 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
-          make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
+          # Feed blank answers to any remaining legacy Kconfig prompts.
+          yes '' | make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
           rc=${PIPESTATUS[0]}
           set -o pipefail
           exit "$rc"
