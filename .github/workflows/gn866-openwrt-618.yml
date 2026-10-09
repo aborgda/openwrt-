@@ -59,6 +59,7 @@ jobs:
           CONFIG_PACKAGE_kmod-rtl8192enb=y
           CONFIG_PACKAGE_kmod-rtw88=y
           CONFIG_PACKAGE_kmod-rtw88-pci=y
+          CONFIG_PACKAGE_kmod-rtw88-8812a=y
           CONFIG_PACKAGE_kmod-rtw88-8822b=y
           CONFIG_PACKAGE_kmod-rtw88-8822be=y
           CONFIG_PACKAGE_kmod-rtl8822b=y
