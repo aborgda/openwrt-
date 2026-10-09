@@ -90,8 +90,6 @@ jobs:
         shell: bash
         env:
           FORCE_UNSAFE_CONFIGURE: "1"
-          KCONFIG_NONINTERACTIVE: "1"
-          KCONFIG_NOSILENTUPDATE: "1"
         run: |
           set -o pipefail
           mkdir -p artifacts
