@@ -5,7 +5,7 @@ define Device/gn866_ac
   SOC := rtl8198c
   DEVICE_VENDOR := Aborgda
   DEVICE_MODEL := GN866 AC
-  DEVICE_PACKAGES += kmod-rtl8192er kmod-rtl8192enb kmod-rtl8822be
+  DEVICE_PACKAGES += kmod-rtl8192er kmod-rtl8192enb kmod-rtl8822be kmod-rtl8822b
   KERNEL := kernel-bin | append-dtb | rt-compress
   KERNEL_INITRAMFS := kernel-bin | append-dtb | rt-compress
   IMAGE_SIZE := 16m
