@@ -86,7 +86,7 @@ jobs:
           # Some MIPS Kconfig symbols still prompt despite KCONFIG_NONINTERACTIVE.
           # Feed empty answers so Kconfig selects defaults instead of aborting in CI.
           set +e
-          yes '' | make -j2 V=sc FORCE=1 target/linux/prepare
+          (printf '22\n'; yes '') | make -j2 V=sc FORCE=1 target/linux/prepare
           statuses=("${PIPESTATUS[@]}")
           rc=${statuses[1]}
           set -e
@@ -102,7 +102,7 @@ jobs:
           mkdir -p artifacts
           # Feed blank answers to any remaining legacy Kconfig prompts.
           set +e
-          yes '' | make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
+          (printf '22\n'; yes '') | make -j2 V=sc FORCE=1 world 2>&1 | tee artifacts/build.log
           status=("${PIPESTATUS[@]}")
           rc=${status[1]}
           set -e
